@@ -1,0 +1,598 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
+}
+
+// ============================================
+// USER & AUTHENTICATION
+// ============================================
+
+// User roles for access control
+enum UserRole {
+  SUPER_ADMIN   // Full system access
+  ADMIN         // Company admin
+  MANAGER       // Brand manager
+  VIEWER        // Read-only access
+}
+
+// User model with NextAuth.js compatibility
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  password      String?   // Hashed password for credentials auth
+  role          UserRole  @default(VIEWER)
+  avatar        String?
+  isActive      Boolean   @default(true)
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // NextAuth.js relations
+  accounts      Account[]
+  sessions      Session[]
+  
+  // Application relations
+  userBrands    UserBrand[]   // User-to-Brand assignments
+  apiKeys       ApiKey[]
+  forecasts     Forecast[]
+  auditLogs     AuditLog[]
+}
+
+// NextAuth.js Account model (for OAuth providers)
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([provider, providerAccountId])
+}
+
+// NextAuth.js Session model
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// NextAuth.js VerificationToken model
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  
+  @@unique([identifier, token])
+}
+
+// ============================================
+// BRAND MANAGEMENT
+// ============================================
+
+// Brand model - supports multi-brand (27 brands)
+model Brand {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique  // URL-friendly identifier
+  description String?
+  logo        String?
+  color       String?  // Brand color for charts (hex)
+  website     String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  userBrands    UserBrand[]
+  products      Product[]
+  sales         Sale[]
+  adCampaigns   AdCampaign[]
+  budgets       Budget[]
+  forecasts     Forecast[]
+  integrations  Integration[]
+  inventoryLogs InventoryLog[]
+}
+
+// User-to-Brand assignment (many-to-many with roles)
+model UserBrand {
+  id        String   @id @default(cuid())
+  userId    String
+  brandId   String
+  role      UserRole  @default(VIEWER)  // Role specific to this brand
+  createdAt DateTime  @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  brand     Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, brandId])
+}
+
+// ============================================
+// PLATFORMS & INTEGRATIONS
+// ============================================
+
+// Platform types for sales channels
+enum PlatformType {
+  SHOPEE
+  LAZADA
+  SHOPIFY
+  TIKTOK_SHOP
+  FACEBOOK
+  WHATSAPP
+  RETAIL
+  OTHER
+}
+
+// Ad platform types
+enum AdPlatformType {
+  FACEBOOK_ADS
+  SHOPEE_ADS
+  LAZADA_ADS
+  TIKTOK_ADS
+  GOOGLE_ADS
+  OTHER
+}
+
+// Platform/Sales Channel
+model Platform {
+  id          String       @id @default(cuid())
+  name        String
+  type        PlatformType
+  description String?
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  
+  // Relations
+  sales       Sale[]
+  integrations Integration[]
+}
+
+// API Integrations (secure credential storage)
+model Integration {
+  id              String       @id @default(cuid())
+  name            String
+  type            String       // "shopee", "lazada", "shopify", "tiktok_shop", "facebook_ads", etc.
+  status          String       @default("inactive") // "active", "inactive", "error", "pending"
+  
+  // OAuth credentials (encrypted)
+  apiKey          String?
+  apiSecret       String?
+  accessToken     String?
+  refreshToken    String?
+  tokenExpiresAt  DateTime?
+  shopId          String?      // For Shopee/Lazada shop IDs
+  storeUrl        String?      // For Shopify store URL
+  
+  // Sync settings
+  lastSyncAt      DateTime?
+  syncInterval    Int          @default(300) // seconds (5 min default)
+  syncStatus      String       @default("pending") // "pending", "syncing", "completed", "error"
+  lastError       String?
+  lastSuccessfulSync DateTime?
+  
+  // Webhook settings
+  webhookSecret   String?
+  webhookUrl      String?
+  
+  // Associated brand and platform
+  brandId         String
+  brand           Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  platformId      String?
+  platform        Platform?    @relation(fields: [platformId], references: [id])
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  @@unique([brandId, type])
+}
+
+// Sync job tracking
+model SyncJob {
+  id              String   @id @default(cuid())
+  integrationId   String
+  type            String   // "orders", "products", "inventory", "ads"
+  status          String   // "queued", "running", "completed", "failed"
+  startedAt       DateTime?
+  completedAt     DateTime?
+  recordsSynced   Int      @default(0)
+  error           String?
+  
+  createdAt       DateTime @default(now())
+}
+
+// ============================================
+// PRODUCTS & INVENTORY
+// ============================================
+
+// Product catalog
+model Product {
+  id              String   @id @default(cuid())
+  sku             String
+  name            String
+  description     String?
+  category        String?
+  imageUrl        String?
+  cost            Float    // Cost price
+  isActive        Boolean  @default(true)
+  brandId         String
+  
+  // Platform-specific IDs
+  shopeeItemId    String?
+  lazadaSku       String?
+  shopifyProductId String?
+  tiktokProductId  String?
+  
+  // Relations
+  brand           Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  sales           Sale[]
+  inventoryLogs   InventoryLog[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([sku, brandId])
+}
+
+// Inventory tracking
+model InventoryLog {
+  id          String   @id @default(cuid())
+  productId   String
+  brandId     String
+  
+  quantity    Int      // Current quantity
+  change      Int      // Positive for additions, negative for sales
+  reason      String   // "sale", "restock", "adjustment", "return"
+  platform    String?  // Which platform triggered this
+  
+  reference   String?  // Order ID or reference number
+  
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  brand       Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([productId])
+  @@index([brandId])
+  @@index([createdAt])
+}
+
+// ============================================
+// SALES & ORDERS
+// ============================================
+
+// Sales transactions from all channels
+model Sale {
+  id              String       @id @default(cuid())
+  orderId         String       // Order ID from platform
+  platformOrderId String?      // Platform-specific order number
+  
+  transactionDate DateTime
+  status          String       @default("completed") // "pending", "processing", "completed", "cancelled", "refunded"
+  
+  quantity        Int
+  unitPrice       Float
+  totalAmount     Float
+  discount        Float        @default(0)
+  shippingCost    Float        @default(0)
+  netAmount       Float
+  currency        String       @default("MYR")
+  
+  // Customer info (anonymized for privacy)
+  customerId      String?
+  customerName    String?
+  isNewCustomer   Boolean      @default(true)
+  
+  // Location
+  country         String?
+  region          String?
+  city            String?
+  
+  // Profit calculation
+  costOfGoods     Float        @default(0)
+  grossProfit     Float        @default(0)
+  
+  // Platform & Brand
+  platformId      String
+  brandId         String
+  productId       String?
+  
+  // Relations
+  platform        Platform     @relation(fields: [platformId], references: [id])
+  brand           Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  product         Product?     @relation(fields: [productId], references: [id])
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  @@index([transactionDate])
+  @@index([brandId])
+  @@index([platformId])
+  @@unique([orderId, platformId])
+}
+
+// ============================================
+// ADVERTISING
+// ============================================
+
+// Ad Campaigns from all ad platforms
+model AdCampaign {
+  id              String        @id @default(cuid())
+  campaignId      String        // Campaign ID from platform
+  name            String
+  adPlatform      AdPlatformType
+  
+  // Date range
+  startDate       DateTime
+  endDate         DateTime?
+  
+  // Budget
+  budget          Float?
+  budgetSpent     Float         @default(0)
+  
+  // Performance metrics
+  impressions     Int           @default(0)
+  clicks          Int           @default(0)
+  conversions     Int           @default(0)
+  conversionValue Float         @default(0)
+  
+  // Calculated metrics
+  ctr             Float         @default(0)  // Click-through rate
+  cpa             Float         @default(0)  // Cost per acquisition
+  roas            Float         @default(0)  // Return on ad spend
+  cpm             Float         @default(0)  // Cost per mille
+  cpc             Float         @default(0)  // Cost per click
+  
+  // Platform targeting
+  targetPlatform  PlatformType?
+  
+  // Status
+  status          String        @default("active") // "active", "paused", "completed"
+  
+  // Brand association
+  brandId         String
+  brand           Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@unique([campaignId, adPlatform, brandId])
+  @@index([startDate])
+  @@index([brandId])
+}
+
+// Daily ad performance (for detailed tracking)
+model AdPerformanceDaily {
+  id              String        @id @default(cuid())
+  campaignId      String
+  adPlatform      AdPlatformType
+  date            DateTime
+  
+  impressions     Int           @default(0)
+  clicks          Int           @default(0)
+  conversions     Int           @default(0)
+  spend           Float         @default(0)
+  revenue         Float         @default(0)
+  
+  createdAt       DateTime      @default(now())
+  
+  @@unique([campaignId, adPlatform, date])
+  @@index([date])
+}
+
+// ============================================
+// ANALYTICS & METRICS
+// ============================================
+
+// Daily aggregated metrics for performance
+model DailyMetric {
+  id              String       @id @default(cuid())
+  date            DateTime
+  
+  // Dimensions
+  brandId         String?
+  platformId      String?
+  
+  // Revenue metrics
+  revenue         Float        @default(0)
+  orders          Int          @default(0)
+  unitsSold       Int          @default(0)
+  
+  // Customer metrics
+  newCustomers    Int          @default(0)
+  returningCustomers Int       @default(0)
+  
+  // Discount metrics
+  totalDiscount   Float        @default(0)
+  discountRate    Float        @default(0)
+  
+  // Profit metrics
+  grossProfit     Float        @default(0)
+  netProfit       Float        @default(0)
+  margin          Float        @default(0)
+  
+  // Ad metrics (aggregated)
+  adSpend         Float        @default(0)
+  adRevenue       Float        @default(0)
+  roas            Float        @default(0)
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  @@index([date])
+  @@unique([date, brandId, platformId])
+}
+
+// ============================================
+// BUDGET & FORECASTING
+// ============================================
+
+// Budget planning
+model Budget {
+  id              String     @id @default(cuid())
+  name            String
+  period          String     // "2024-01", "Q1-2024", etc.
+  
+  // Budget allocation
+  totalBudget     Float
+  marketingBudget Float      @default(0)
+  operationalBudget Float    @default(0)
+  adBudget        Float      @default(0)
+  
+  // Tracking
+  spentAmount     Float      @default(0)
+  remainingAmount Float      @default(0)
+  
+  // Dimensions
+  brandId         String
+  platformId      String?
+  
+  // Relations
+  brand           Brand      @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  
+  @@unique([period, brandId, platformId])
+}
+
+// Forecasting
+model Forecast {
+  id              String     @id @default(cuid())
+  name            String
+  period          String     // "2024-01", "Q1-2024", etc.
+  
+  // Forecast values
+  revenueForecast Float
+  profitForecast  Float      @default(0)
+  adSpendForecast Float      @default(0)
+  
+  // Actual values (for comparison)
+  revenueActual   Float?
+  profitActual    Float?
+  adSpendActual   Float?
+  
+  // Variance
+  revenueVariance Float?
+  profitVariance  Float?
+  
+  // Created by
+  createdById     String
+  createdBy       User       @relation(fields: [createdById], references: [id])
+  
+  // Dimensions
+  brandId         String
+  brand           Brand      @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  
+  // Scenario modeling
+  scenario        String?    // "baseline", "optimistic", "pessimistic", custom
+  
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+// ============================================
+// SECURITY & AUDITING
+// ============================================
+
+// API Keys for programmatic access
+model ApiKey {
+  id              String     @id @default(cuid())
+  name            String
+  key             String     @unique
+  userId          String
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  isActive        Boolean    @default(true)
+  lastUsedAt      DateTime?
+  expiresAt       DateTime?
+  
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+// Audit logging
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  action      String   // "login", "logout", "create", "update", "delete"
+  entity      String   // "brand", "user", "integration", "sale", etc.
+  entityId    String?
+  details     String?  // JSON details of the action
+  ipAddress   String?
+  userAgent   String?
+  
+  user        User?    @relation(fields: [userId], references: [id])
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([entity])
+  @@index([createdAt])
+}
+
+// ============================================
+// AI CHAT & SUPPORT
+// ============================================
+
+// AI Chat History
+model AIChatSession {
+  id              String     @id @default(cuid())
+  title           String?
+  userId          String?
+  
+  messages        AIChatMessage[]
+  
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+model AIChatMessage {
+  id              String        @id @default(cuid())
+  sessionId       String
+  session         AIChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  role            String        // "user" or "assistant"
+  content         String
+  
+  // Query metadata
+  queryType       String?       // "revenue", "comparison", "forecast", etc.
+  chartData       String?       // JSON string for generated charts
+  
+  createdAt       DateTime      @default(now())
+}
+
+// ============================================
+// SYSTEM SETTINGS
+// ============================================
+
+// System settings
+model SystemSetting {
+  id              String     @id @default(cuid())
+  key             String     @unique
+  value           String
+  description     String?
+  
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
