@@ -11,6 +11,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react'
 
+const DEMO_ACCOUNTS = [
+  { label: 'Admin', email: 'admin@ctg.com', password: 'admin123', description: 'Full access' },
+  { label: 'Manager', email: 'manager@ctg.com', password: 'manager123', description: 'Brand management' },
+  { label: 'Viewer', email: 'viewer@ctg.com', password: 'viewer123', description: 'Read-only' },
+]
+
 export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
@@ -44,6 +50,12 @@ export default function LoginPage() {
     }
   }
 
+  const fillDemoAccount = (demoEmail: string, demoPassword: string) => {
+    setEmail(demoEmail)
+    setPassword(demoPassword)
+    setError('')
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
       <Card className="w-full max-w-md">
@@ -66,6 +78,26 @@ export default function LoginPage() {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
+
+            {/* Demo Account Quick Access */}
+            <div className="rounded-lg border border-dashed border-muted-foreground/30 bg-muted/30 p-3 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground text-center">Demo Accounts</p>
+              <div className="grid grid-cols-3 gap-2">
+                {DEMO_ACCOUNTS.map((account) => (
+                  <button
+                    key={account.email}
+                    type="button"
+                    onClick={() => fillDemoAccount(account.email, account.password)}
+                    className="flex flex-col items-center rounded-md border border-border bg-background px-2 py-2 text-xs hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
+                    disabled={loading}
+                  >
+                    <span className="font-semibold">{account.label}</span>
+                    <span className="text-muted-foreground text-[10px]">{account.description}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
