@@ -134,6 +134,7 @@ export default function DataHubPage() {
 
   const currentDashboard = dashboardTitles[activeDashboard] || dashboardTitles.executive;
   const isDashboard = ['executive', 'financial', 'marketing', 'product', 'platform', 'brand', 'forecast'].includes(activeDashboard);
+  const isNonDashboardPage = ['connections', 'settings', 'help', 'users', 'audit-logs'].includes(activeDashboard);
 
   return (
     <div className="min-h-screen bg-background">
@@ -152,20 +153,20 @@ export default function DataHubPage() {
 
         {/* Header */}
         <header className="sticky top-0 z-20 border-b bg-card/80 backdrop-blur-sm px-4 lg:px-6">
-          <div className="flex flex-col gap-1 py-2 lg:flex-row lg:items-center lg:justify-between lg:h-16 lg:gap-4">
-            {/* Title Section - Full width on mobile */}
-            <div className="flex items-center gap-4 min-w-0">
+          <div className="flex items-center h-12 lg:h-16 gap-4">
+            {/* Title Section - Left aligned */}
+            <div className="flex items-center gap-4 min-w-0 flex-1">
               {/* Mobile menu spacer */}
               <div className="w-10 lg:hidden shrink-0" />
-              <div className="min-w-0 flex-1 lg:flex-none">
+              <div className="min-w-0 overflow-hidden">
                 <h1 className="text-lg lg:text-xl font-semibold truncate">{currentDashboard.title}</h1>
-                <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate hidden lg:block">
                   {currentDashboard.description}
                 </p>
               </div>
             </div>
-            {/* Actions Section */}
-            <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 overflow-x-auto pb-1 lg:pb-0 lg:shrink-0 scrollbar-hide">
+            {/* Actions Section - Right aligned */}
+            <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 flex-shrink-0 ml-auto">
               {isDashboard && (
                 <>
                   <NotificationsPanel />
