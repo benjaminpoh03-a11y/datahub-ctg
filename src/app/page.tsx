@@ -152,20 +152,22 @@ export default function DataHubPage() {
 
         {/* Header */}
         <header className="sticky top-0 z-20 border-b bg-card/80 backdrop-blur-sm px-4 lg:px-6">
-          <div className="flex flex-col gap-1 py-2 lg:flex-row lg:items-center lg:justify-between lg:h-16 lg:gap-4">
-            {/* Title Section - Full width on mobile */}
-            <div className="flex items-center gap-4 min-w-0">
-              {/* Mobile menu spacer */}
-              <div className="w-10 lg:hidden shrink-0" />
-              <div className="min-w-0 flex-1 lg:flex-none">
-                <h1 className="text-lg lg:text-xl font-semibold truncate">{currentDashboard.title}</h1>
-                <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                  {currentDashboard.description}
-                </p>
+          <div className="flex flex-col gap-3 py-3 lg:py-4">
+            {/* Title Section */}
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-4 min-w-0 flex-1">
+                {/* Mobile menu spacer */}
+                <div className="w-10 lg:hidden shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-lg lg:text-xl font-semibold truncate">{currentDashboard.title}</h1>
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                    {currentDashboard.description}
+                  </p>
+                </div>
               </div>
             </div>
-            {/* Actions Section */}
-            <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 overflow-x-auto pb-1 lg:pb-0 lg:shrink-0 scrollbar-hide">
+            {/* Actions Section - Below title on mobile, same row on desktop */}
+            <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 overflow-x-auto pb-1 lg:pb-0 scrollbar-hide">
               {isDashboard && (
                 <>
                   <NotificationsPanel />
