@@ -152,21 +152,21 @@ export default function DataHubPage() {
         {isDashboard && <NewsTicker />}
 
         {/* Header */}
-        <header className="sticky top-0 z-20 border-b bg-card/80 backdrop-blur-sm px-4 lg:px-6">
-          <div className="flex items-center h-12 lg:h-16 gap-4">
+        <header className="sticky top-0 z-20 border-b bg-card/80 backdrop-blur-sm px-3 sm:px-4 lg:px-6">
+          <div className="flex items-center min-h-14 sm:min-h-16 gap-2 sm:gap-3 md:gap-4">
             {/* Title Section - Left aligned */}
-            <div className="flex items-center gap-4 min-w-0 flex-1">
+            <div className="flex flex-col gap-0.5 min-w-0 flex-1">
               {/* Mobile menu spacer */}
-              <div className="w-10 lg:hidden shrink-0" />
+              <div className="w-8 sm:w-10 lg:hidden shrink-0" />
               <div className="min-w-0 overflow-hidden">
-                <h1 className="text-lg lg:text-xl font-semibold truncate">{currentDashboard.title}</h1>
-                <p className="text-xs sm:text-sm text-muted-foreground truncate hidden lg:block">
+                <h1 className="text-sm sm:text-base md:text-lg lg:text-xl font-semibold truncate">{currentDashboard.title}</h1>
+                <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground line-clamp-1">
                   {currentDashboard.description}
                 </p>
               </div>
             </div>
             {/* Actions Section - Right aligned */}
-            <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 flex-shrink-0 ml-auto">
+            <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 lg:gap-3 flex-shrink-0 ml-auto">
               {isDashboard && (
                 <>
                   <NotificationsPanel />
