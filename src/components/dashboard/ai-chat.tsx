@@ -74,7 +74,7 @@ export function AIChatPanel() {
   if (!aiChatOpen) return null;
 
   return (
-    <div className="fixed right-0 top-0 z-50 h-screen w-96 border-l bg-card shadow-xl">
+    <div className="fixed right-0 top-0 z-50 h-screen w-full sm:w-96 border-l bg-card shadow-xl animate-in slide-in-from-right duration-300">
       <div className="flex h-full flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b p-4">
@@ -135,7 +135,7 @@ export function AIChatPanel() {
                   </div>
                   <div
                     className={cn(
-                      'rounded-lg px-4 py-2 max-w-[280px]',
+                      'rounded-lg px-4 py-2 max-w-[85%] sm:max-w-[280px]',
                       message.role === 'user'
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-muted'

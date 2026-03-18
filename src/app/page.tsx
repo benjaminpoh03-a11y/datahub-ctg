@@ -76,7 +76,7 @@ const dashboardTitles: Record<string, { title: string; description: string }> = 
 };
 
 export default function DataHubPage() {
-  const { sidebarOpen, activeDashboard } = useUIStore();
+  const { sidebarOpen, activeDashboard, aiChatOpen } = useUIStore();
   const [currentYear, setCurrentYear] = useState<number>(2024); // Default to avoid hydration mismatch
   const [serverTime, setServerTime] = useState<string>('');
 
@@ -145,7 +145,8 @@ export default function DataHubPage() {
       <div
         className={cn(
           'transition-all duration-300',
-          sidebarOpen ? 'lg:ml-64' : 'ml-0'
+          sidebarOpen ? 'lg:ml-64' : 'ml-0',
+          aiChatOpen ? 'xl:mr-96' : 'mr-0'
         )}
       >
         {/* News Ticker - Only show on dashboards */}
@@ -185,7 +186,11 @@ export default function DataHubPage() {
 
         {/* Footer */}
         <footer className="fixed bottom-0 left-0 right-0 border-t py-3 px-4 lg:px-6 text-center text-sm text-muted-foreground bg-card/80 backdrop-blur-sm z-10">
-          <div className={cn('transition-all duration-300 flex items-center justify-center gap-2 lg:gap-4', sidebarOpen ? 'lg:ml-64' : '')}>
+          <div className={cn(
+            'transition-all duration-300 flex items-center justify-center gap-2 lg:gap-4', 
+            sidebarOpen ? 'lg:ml-64' : '',
+            aiChatOpen ? 'xl:mr-96' : ''
+          )}>
             <span className="truncate">DataHub by CTG © {currentYear}</span>
             <span className="hidden sm:inline">|</span>
             <span className="hidden sm:inline flex items-center gap-1.5">
