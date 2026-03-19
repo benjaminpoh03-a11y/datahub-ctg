@@ -179,7 +179,7 @@ export function ExecutiveDashboard() {
   const conversionRate = 2.8 + Math.random() * 1.5;
 
   // Format brand data for pie chart
-  const brandData = brands.slice(0, 8).map(brand => ({
+  const brandData = brands.map(brand => ({
     name: brand.name,
     value: brand.metrics?.revenue || 0,
   }));

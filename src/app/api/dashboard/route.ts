@@ -86,15 +86,15 @@ export async function GET(request: NextRequest) {
             customers: Math.round(d.revenue / 95 * 0.7),
           })),
         },
-        brands: mockData.topBrands.map((b, i) => ({
+        brands: Object.entries(mockData.revenue.revenueByBrand).map(([name, revenue], i) => ({
           id: `brand-${i+1}`,
-          name: b.name,
-          slug: b.name.toLowerCase().replace(/\s+/g, '-'),
+          name: name,
+          slug: name.toLowerCase().replace(/\s+/g, '-'),
           color: '#3b82f6',
           metrics: {
-            revenue: b.revenue,
-            orders: Math.round(b.revenue / 95),
-            growth: b.growth,
+            revenue: revenue,
+            orders: Math.round(revenue / 95),
+            growth: 10 + Math.random() * 10,
           }
         })),
         platforms: mockData.platformPerformance.map((p, i) => ({
