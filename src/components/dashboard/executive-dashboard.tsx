@@ -416,7 +416,7 @@ export function ExecutiveDashboard() {
       </div>
 
       {/* Main Charts Row */}
-      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">ref={chartRef}>
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3" ref={chartRef}>
         <div className="lg:col-span-2">
           <RevenueTrendChart 
             data={trendData} 
